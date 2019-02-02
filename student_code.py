@@ -128,7 +128,60 @@ class KnowledgeBase(object):
         printv("Retracting {!r}", 0, verbose, [fact])
         ####################################################
         # Student code goes here
-        
+        if (fact in self.facts):
+            f = self._get_fact(fact)
+
+            # remove asserted fact if it is unsupported
+            if (len(f.supported_by) == 0):
+                self.facts.remove(f)
+
+                # supported facts
+                for sf in f.supports_facts:
+                    for pair in sf.supported_by:
+                        # remove pair if our f is in the pair (fact, rule)
+                        if (f in pair):
+                            sf.supported_by.remove(pair)
+                    # handle remove of sf
+                    self.kb_retract(sf)
+
+                # supported rules
+                for sr in f.supports_rules:
+                    for pair in sr.supported_by:
+                        # remove pair if our f is in the pair (fact, rule)
+                        if (f in pair):
+                            sr.supported_by.remove(pair)
+                    # handle remove of sr
+                    self.kb_retract(sr)
+            # fact is supported
+            else:
+                f.asserted = False
+        # rules should not be retracted and asserted rules cannot be removed
+        elif (fact in self.rules and fact.asserted is False):
+            r = self._get_rule(fact)
+
+            # remove rule if it is unsupported
+            if (len(r.supported_by) == 0):
+                self.rules.remove(r)
+
+                # supported facts
+                for sf in r.supports_facts:
+                    for pair in sf.supported_by:
+                        # remove pair if our r is in the pair (fact, rule)
+                        if (r in pair):
+                            sf.supported_by.remove(pair)
+                    # handle remove of sf
+                    self.kb_retract(sf)
+
+                # supported rules
+                for sr in r.supports_rules:
+                    for pair in sr.supported_by:
+                        # remove pair if our r is in the pair (fact, rule)
+                        if (r in pair):
+                            sr.supported_by.remove(pair)
+                    # handle remove of sr
+                    self.kb_retract(sr)
+        else:
+            print('No matches')
 
 class InferenceEngine(object):
     def fc_infer(self, fact, rule, kb):
@@ -146,3 +199,45 @@ class InferenceEngine(object):
             [fact.statement, rule.lhs, rule.rhs])
         ####################################################
         # Student code goes here
+        # container to keep track of bindings
+        b_lst = ListOfBindings()
+        
+        # check only first element of rule LHS against facts in KB
+        check = match(fact.statement, rule.lhs[0])
+
+        # if there is a match, add a new statement paired with bindings for that match
+        if (check):
+            pair = [fact, rule]
+
+            if (len(rule.lhs) == 1):
+                infer_s = instantiate(rule.rhs, check)
+                infer_f = Fact(infer_s)
+                # check if exists
+                if (infer_f in kb.facts):
+                    infer_f = kb._get_fact(infer_f)
+                # check if this pair (fact, rule) is in supported_by
+                if pair not in infer_f.supported_by:
+                    infer_f.supported_by.append(pair)
+                # add the infer_f
+                fact.supports_facts.append(infer_f)
+                rule.supports_facts.append(infer_f)
+                # add to kb if not already added
+                if infer_f not in kb.facts:
+                    kb.kb_assert(infer_f)
+            else:
+                # instantiate remaining lhs statements
+                infer_lhs = list(map(lambda s: instantiate(s, check), rule.lhs[1:]))
+                infer_rhs = instantiate(rule.rhs, check)
+                infer_r = Rule([infer_lhs, infer_rhs])
+                # check if exists
+                if (infer_r in kb.rules):
+                    infer_r = kb._get_rule(infer_r)
+                # check if this pair (fact, rule) is in supported_by
+                if (pair not in infer_r.supported_by):
+                    infer_r.supported_by.append(pair)
+                # add the infer_r
+                fact.supports_rules.append(infer_r)
+                rule.supports_rules.append(infer_r)
+                # add to kb if not already added
+                if (infer_r not in kb.rules):
+                    kb.kb_assert(infer_r)
