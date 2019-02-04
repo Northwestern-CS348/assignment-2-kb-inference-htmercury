@@ -118,10 +118,8 @@ class KnowledgeBase(object):
 
     def kb_retract(self, fact):
         """Retract a fact from the KB
-
         Args:
             fact (Fact) - Fact to be retracted
-
         Returns:
             None
         """
@@ -198,10 +196,7 @@ class InferenceEngine(object):
         printv('Attempting to infer from {!r} and {!r} => {!r}', 1, verbose,
             [fact.statement, rule.lhs, rule.rhs])
         ####################################################
-        # Student code goes here
-        # container to keep track of bindings
-        b_lst = ListOfBindings()
-        
+        # Student code goes here       
         # check only first element of rule LHS against facts in KB
         check = match(fact.statement, rule.lhs[0])
 
@@ -211,7 +206,7 @@ class InferenceEngine(object):
 
             if (len(rule.lhs) == 1):
                 infer_s = instantiate(rule.rhs, check)
-                infer_f = Fact(infer_s)
+                infer_f = Fact(infer_s, supported_by=[pair])
                 # check if exists
                 if (infer_f in kb.facts):
                     infer_f = kb._get_fact(infer_f)
@@ -228,7 +223,7 @@ class InferenceEngine(object):
                 # instantiate remaining lhs statements
                 infer_lhs = list(map(lambda s: instantiate(s, check), rule.lhs[1:]))
                 infer_rhs = instantiate(rule.rhs, check)
-                infer_r = Rule([infer_lhs, infer_rhs])
+                infer_r = Rule([infer_lhs, infer_rhs], supported_by=[pair])
                 # check if exists
                 if (infer_r in kb.rules):
                     infer_r = kb._get_rule(infer_r)
